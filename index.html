@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>KasirKu — Global Kasir, Mudah & Terpercaya</title>
+<meta name="description" content="KasirKu — Aplikasi kasir digital untuk warung: kelola produk, stok, transaksi, dan pembayaran QRIS. Bisa dipasang sebagai aplikasi (PWA).">
+<meta name="theme-color" content="#0B3B2C">
+
+<!-- PWA: manifest & icons -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KasirKu">
+<meta name="mobile-web-app-capable" content="yes">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap">
+
+<style>
+:root{
+  --green-900:#0B3B2C; --green-800:#0F4C3A; --green-700:#16794F; --green-600:#1E9463; --green-100:#E4F3EA;
+  --gold-500:#F2B705; --amber-600:#E8871E; --cream-50:#FAF8F2; --cream-100:#F2EFE6;
+  --ink-900:#16211C; --ink-700:#3B4A42; --ink-400:#7A8C82; --line:#DFE4DC; --white:#FFFFFF;
+  --danger:#C0392B; --danger-bg:#FDECEA;
+  --radius-lg:24px; --radius-md:16px; --radius-sm:10px;
+  --shadow-card:0 4px 20px rgba(15,76,58,0.08), 0 1px 2px rgba(15,76,58,0.06);
+  --shadow-pop:0 24px 48px rgba(11,59,44,0.15);
+  --font-display:'Baloo 2', system-ui, sans-serif; --font-body:'Inter', system-ui, sans-serif;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%; overflow-x:hidden;}
+body{
+  margin:0; font-family:var(--font-body); background:var(--cream-100); color:var(--ink-900);
+  -webkit-tap-highlight-color:transparent; overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+h1,h2,h3,h4{font-family:var(--font-display); margin:0; color:var(--green-900); font-weight:700;}
+p{margin:0;}
+button,input,select,textarea{font-family:inherit;}
+
+.view{display:none; opacity: 0; transition: opacity 0.4s ease;}
+.view.active{display:block; opacity: 1;}
+.view-auth.active{display:flex;} /* Menang atas .view.active agar login/aktivasi benar-benar center & fullscreen */
+@media(min-width:900px){ .view-app.active{display:flex;} }
+
+/* --- Splash Screen --- */
+.view-splash{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:var(--green-900);
+  z-index: 9999;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.6s;
+}
+.view-splash.active{opacity: 1; visibility: visible;}
+.view-splash:not(.active){opacity: 0; visibility: hidden; pointer-events: none;}
+.splash-brand{text-align:center; color:var(--white); animation:fadeScale 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;}
+.splash-logo{
+  width:112px; height:112px; border-radius:30px; box-shadow:0 20px 44px rgba(0,0,0,0.35);
+  margin:0 auto 24px; background:var(--white); display:flex; align-items:center; justify-content:center; font-size:54px; overflow:hidden;
+  animation:pulseLogo 2.4s ease-in-out infinite;
+}
+.splash-logo img{width:100%; height:100%; object-fit:cover; display:block;}
+@keyframes pulseLogo{0%,100%{transform:scale(1);} 50%{transform:scale(1.04);}}
+.splash-loader{width:36px; height:36px; margin:28px auto 0; border:3px solid rgba(255,255,255,0.25); border-top-color:var(--gold-500); border-radius:50%; animation:spin .9s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.splash-brand h1{color:var(--white); font-size:32px; letter-spacing:1px;}
+.splash-tag{color:var(--gold-500); font-weight:700; letter-spacing:3px; font-size:13px; text-transform:uppercase; margin-top:8px; display:block;}
+@keyframes fadeScale{from{opacity:0; transform:scale(0.8) translateY(20px);} to{opacity:1; transform:none;}}
+
+.view-auth{
+  min-height:100vh; min-height:100dvh; max-height:100vh; max-height:100dvh;
+  display:flex; align-items:center; justify-content:center; padding:24px;
+  background: linear-gradient(145deg, var(--green-900) 0%, var(--green-800) 100%);
+  position: relative; overflow-y:auto; overflow-x:hidden;
+}
+.view-auth::before {
+  content: ''; position: absolute; width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(30,148,99,0.15) 0%, transparent 60%);
+  top: -200px; right: -200px; border-radius: 50%; pointer-events: none;
+}
+.auth-card{
+  background:var(--white); width:100%; max-width:440px; position:relative; z-index: 10;
+  border-radius:var(--radius-lg); padding:40px 32px; box-shadow:var(--shadow-pop);
+  margin: auto;
+}
+.auth-header{text-align:center; margin-bottom:32px;}
+.auth-logo-box{
+  width:72px; height:72px; border-radius:20px; margin:0 auto 16px; background:var(--green-100); 
+  display:flex; align-items:center; justify-content:center; font-size:32px; overflow:hidden;
+  box-shadow:0 8px 20px rgba(15,76,58,0.15);
+}
+.auth-logo-box img{width:100%; height:100%; object-fit:cover; display:block;}
+.auth-header h2{font-size:26px; margin-bottom:8px; line-height: 1.2;}
+.auth-header p{color:var(--ink-400); font-size:14.5px; line-height:1.5;}
+
+.auth-form{display:flex; flex-direction:column; gap:16px;}
+.auth-form label{font-size:13.5px; font-weight:700; color:var(--ink-700); display:flex; flex-direction:column; gap:8px;}
+.auth-form input{
+  border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px;
+  font-size:15px; color:var(--ink-900); background:#F9FAFB; outline:none; transition:all .2s;
+}
+.auth-form input:focus{
+  border-color:var(--green-600); background:var(--white);
+  box-shadow:0 0 0 4px rgba(30,148,99,0.12);
+}
+.hint-security{
+  font-size:12.5px; color:var(--green-800); background:var(--green-100); 
+  padding:12px 14px; border-radius:var(--radius-sm); line-height:1.5; font-weight: 500;
+}
+.form-error{color:var(--danger); font-size:13.5px; min-height:0; font-weight: 500;}
+.form-error:empty{display:none;}
+
+.role-switch{
+  display:flex; background:var(--cream-100); border-radius:999px; padding:5px; margin-bottom:24px;
+}
+.role-btn{
+  flex:1; border:none; background:transparent; padding:12px; border-radius:999px; 
+  font-weight:700; color:var(--ink-400); cursor:pointer; font-size:14px; transition: all 0.2s;
+}
+.role-btn.active{background:var(--white); color:var(--green-900); box-shadow:0 2px 8px rgba(0,0,0,0.1);}
+
+.btn{
+  border:none; border-radius:var(--radius-sm); padding:14px 20px; font-weight:700; font-size:15px;
+  cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  transition:transform .1s ease, box-shadow .2s, background .2s;
+}
+.btn:active{transform:scale(.97);}
+.btn-block{width:100%;}
+.btn-primary{background:linear-gradient(135deg, var(--green-700), var(--green-900)); color:var(--white); box-shadow:0 6px 16px rgba(15,76,58,0.28);}
+.btn-primary:hover{background:linear-gradient(135deg, var(--green-800), var(--green-900));}
+.btn-secondary{background:linear-gradient(135deg, var(--gold-500), var(--amber-600)); color:var(--green-900);}
+.btn-secondary:hover{filter:brightness(0.96);}
+.btn-outline{background:var(--white); color:var(--green-800); border:1.5px solid var(--green-700);}
+.btn-ghost{background:transparent; color:var(--ink-400);}
+.btn-ghost:hover{color:var(--danger);}
+.btn-danger{background:var(--danger-bg); color:var(--danger);}
+.btn-sm{padding:8px 14px; font-size:13px;}
+.icon-btn{background:transparent; border:none; font-size:20px; color:var(--white); cursor:pointer; padding:6px;}
+
+.view-app{display:none; min-height:100vh; flex-direction: column;}
+@media(min-width:900px){ .view-app{flex-direction: row;} }
+.sidebar{
+  display:none; width:260px; flex-shrink:0; background:var(--green-900); color:var(--white);
+  flex-direction:column; padding:24px 16px; gap:8px; min-height:100vh; position:sticky; top:0;
+}
+@media(min-width:900px){ .sidebar{display:flex;} }
+.sidebar.mobile-open{
+  display:flex; position:fixed; inset:0 auto 0 0; z-index:200; width:280px; box-shadow:var(--shadow-pop);
+  animation:slideIn .2s ease;
+}
+@keyframes slideIn{from{transform:translateX(-100%);} to{transform:none;}}
+.sidebar-brand{display:flex; align-items:center; gap:12px; padding:8px 6px 24px; border-bottom:1px solid rgba(255,255,255,0.12); margin-bottom:16px;}
+.sb-logo{width:44px; height:44px; border-radius:13px; background:var(--white); display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; box-shadow:0 4px 10px rgba(0,0,0,0.25); flex-shrink:0;}
+.sb-logo img{width:100%; height:100%; object-fit:cover; display:block;}
+.sidebar-brand strong{display:block; font-family:var(--font-display); font-size:18px; line-height:1.25;}
+.sidebar-brand span{display:block; font-size:12px; color:var(--gold-500); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:170px;}
+.sidebar-nav{display:flex; flex-direction:column; gap:4px; flex:1; overflow-y:auto;}
+.nav-item{
+  display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px;
+  color:rgba(255,255,255,0.75); text-decoration:none; font-weight:600; font-size:14.5px; cursor:pointer; border:none; background:transparent; text-align:left; width:100%; transition: all 0.2s;
+}
+.nav-item .ic{font-size:18px; width:24px; text-align:center;}
+.nav-item:hover{background:rgba(255,255,255,0.1); color:var(--white);}
+.nav-item.active{background:var(--gold-500); color:var(--green-900);}
+.btn-logout{margin-top:16px; justify-content:flex-start; font-size: 14.5px;}
+
+.content-col{flex:1; display:flex; flex-direction:column; min-width:0;}
+.top-stack{position:sticky; top:0; z-index:50;}
+.mobile-topbar{
+  display:flex; align-items:center; justify-content:space-between; padding:16px 20px;
+  background:var(--green-900); color:var(--white);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.mobile-topbar .mt-brand{display:flex; align-items:center; gap:10px;}
+.mobile-topbar .mt-logo{width:28px; height:28px; border-radius:8px; overflow:hidden; flex-shrink:0;}
+.mobile-topbar .mt-logo img{width:100%; height:100%; object-fit:cover; display:block;}
+.mobile-topbar strong{font-family:var(--font-display); font-size:17px;}
+@media(min-width:900px){ .mobile-topbar{display:none;} }
+
+.app-statusbar{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  padding:10px 20px; background:var(--white); border-bottom:1px solid var(--line);
+  box-shadow:0 2px 8px rgba(15,76,58,0.05);
+}
+@media(min-width:900px){ .app-statusbar{padding:12px 40px;} }
+.asb-group{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+.asb-item{display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--ink-700); white-space:nowrap;}
+.asb-item .asb-ic{font-size:14px; line-height:1;}
+.asb-item.asb-store{color:var(--green-800);}
+.asb-item.asb-clock{color:var(--ink-400); font-variant-numeric:tabular-nums;}
+.asb-item.asb-user{background:var(--green-100); color:var(--green-800); padding:5px 12px; border-radius:999px;}
+.main-content{padding:20px; max-width:1200px; margin:0 auto; width:100%; flex: 1;}
+@media(min-width:900px){ .main-content{flex:1; padding:32px 40px;} }
+.sidebar-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter: blur(2px); z-index:150;}
+
+.page-head{display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px;}
+.page-head h2{font-size:24px;}
+.page-head p{color:var(--ink-400); font-size:14px; margin-top:6px;}
+
+.grid{display:grid; gap:16px;}
+.grid-stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+.stat-ticket{
+  background:var(--white); border-radius:var(--radius-md); padding:20px;
+  box-shadow:var(--shadow-card); position:relative; overflow:hidden; border-left:6px solid var(--green-600);
+}
+.stat-ticket.accent-gold{border-left-color:var(--gold-500);}
+.stat-ticket.accent-amber{border-left-color:var(--amber-600);}
+.stat-ticket .st-label{font-size:13px; color:var(--ink-400); font-weight:700; text-transform:uppercase; letter-spacing:.5px;}
+.stat-ticket .st-value{font-family:var(--font-display); font-size:28px; color:var(--green-900); margin-top:8px; word-break:break-all; line-height: 1.1;}
+.stat-ticket .st-sub{font-size:12.5px; color:var(--ink-400); margin-top:6px;}
+
+.card{background:var(--white); border-radius:var(--radius-md); box-shadow:var(--shadow-card); padding:24px; transition:box-shadow .2s;}
+.card + .card{margin-top:20px;}
+.card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+.card-head h3{font-size:18px;}
+
+.table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch; margin: 0 -24px; padding: 0 24px;}
+table{width:100%; border-collapse:collapse; font-size:14.5px;}
+th{text-align:left; font-size:12.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--ink-400); padding:12px 16px; border-bottom:2px solid var(--line); white-space:nowrap;}
+td{padding:14px 16px; border-bottom:1px solid var(--line); white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.badge{display:inline-block; padding:4px 12px; border-radius:999px; font-size:12px; font-weight:700;}
+.badge-ok{background:var(--green-100); color:var(--green-700);}
+.badge-warn{background:#FFF4E0; color:var(--amber-600);}
+.badge-danger{background:var(--danger-bg); color:var(--danger);}
+
+.form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+.field{display:flex; flex-direction:column; gap:8px;}
+.field label{font-size:13.5px; font-weight:700; color:var(--ink-700);}
+.field input, .field select, .field textarea{
+  border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; font-size:15px;
+  background:#F9FAFB; outline:none; color:var(--ink-900); transition: all 0.2s;
+}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green-600); background:var(--white); box-shadow:0 0 0 4px rgba(30,148,99,0.12);}
+.field-row{display:flex; gap:10px;}
+
+.pos-layout{display:grid; grid-template-columns:1fr; gap:20px;}
+@media(min-width:1000px){ .pos-layout{grid-template-columns:1.5fr 1fr;} }
+.pos-search{display:flex; gap:12px; margin-bottom:16px;}
+.pos-search input{flex:1;}
+.product-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px;}
+.product-tile{
+  background:var(--white); border-radius:var(--radius-md); box-shadow:var(--shadow-card);
+  padding:14px; cursor:pointer; text-align:left; border:2px solid transparent; transition:border-color .15s, transform .1s;
+}
+.product-tile:active{transform:scale(.95);}
+.product-tile:hover{border-color:var(--green-600);}
+.product-tile .pt-name{font-weight:700; font-size:14px; color:var(--ink-900); line-height:1.4; margin-bottom:8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.product-tile .pt-price{color:var(--green-700); font-weight:800; font-size:15px;}
+.product-tile .pt-stock{font-size:12px; color:var(--ink-400); margin-top:6px;}
+
+.cart-panel{background:var(--white); border-radius:var(--radius-md); box-shadow:var(--shadow-card); display:flex; flex-direction:column; max-height:calc(100vh - 40px); position:sticky; top:20px;}
+.cart-head{padding:18px 24px; border-bottom:1px dashed var(--line); display:flex; justify-content:space-between; align-items:center;}
+.cart-items{flex:1; overflow-y:auto; padding:12px 20px;}
+.cart-row{display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--line);}
+.cart-row .cr-info{flex:1; min-width:0;}
+.cart-row .cr-name{font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.cart-row .cr-price{font-size:12.5px; color:var(--ink-400); margin-top: 2px;}
+.qty-ctrl{display:flex; align-items:center; gap:8px;}
+.qty-ctrl button{width:30px; height:30px; border-radius:50%; border:1.5px solid var(--line); background:var(--white); font-weight:700; font-size:16px; cursor:pointer; display: flex; align-items: center; justify-content: center;}
+.qty-ctrl span{min-width:24px; text-align:center; font-weight:700; font-size:14px;}
+.cart-empty{padding:50px 20px; text-align:center; color:var(--ink-400); font-size:14px;}
+.cart-summary{padding:18px 24px; border-top:1px dashed var(--line);}
+.summary-line{display:flex; justify-content:space-between; font-size:14px; color:var(--ink-700); margin-bottom:8px;}
+.summary-line.total{font-size:22px; font-weight:800; color:var(--green-900); margin-top:12px;}
+.cart-actions{display:flex; gap:12px; padding:16px 24px; border-top:1px solid var(--line);}
+
+.modal-root:empty{display:none;}
+.modal-overlay{position:fixed; inset:0; background:rgba(11,59,44,0.6); backdrop-filter:blur(4px); display:flex; align-items:center; justify-content:center; z-index:500; padding:20px;}
+.modal-box{background:var(--white); border-radius:var(--radius-lg); max-width:500px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-pop); animation:popIn .2s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+.modal-box.modal-wide{max-width:700px;}
+.modal-box.modal-qris{max-width:480px;}
+@keyframes popIn{from{opacity:0; transform:scale(.9) translateY(10px);} to{opacity:1; transform:none;}}
+.modal-head{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--line);}
+.modal-head h3{font-size:18px;}
+.modal-body{padding:24px;}
+.modal-foot{display:flex; gap:12px; padding:18px 24px; border-top:1px solid var(--line);}
+
+.receipt{font-family:'Inter',monospace; font-size:13.5px; color:#111; width:100%; max-width:320px; margin:0 auto;}
+.receipt .r-center{text-align:center;}
+.receipt hr{border:none; border-top:1px dashed #999; margin:10px 0;}
+.receipt .r-row{display:flex; justify-content:space-between; gap:10px;}
+.receipt .r-title{font-family:var(--font-display); font-weight:800; font-size:18px;}
+
+.qris-box{text-align:center;}
+.qris-canvas-wrap{background:var(--white); padding:22px; border-radius:var(--radius-lg); display:inline-block; box-shadow:0 16px 36px rgba(15,76,58,0.16); border:2px solid var(--green-100); animation:popIn .25s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+.qris-canvas-wrap canvas{width:280px !important; height:280px !important; max-width:100%; display:block;}
+.qris-amount{font-family:var(--font-display); font-size:34px; color:var(--green-900); margin:18px 0 6px;}
+.qris-badge{display:inline-flex; align-items:center; gap:6px; background:var(--green-100); color:var(--green-800); font-size:12px; font-weight:700; padding:5px 12px; border-radius:999px; margin-bottom:14px;}
+
+#barcode-reader{width:100%; border-radius:var(--radius-md); overflow:hidden;}
+
+.toast-root{position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none;}
+.toast{background:var(--green-900); color:var(--white); padding:14px 20px; border-radius:var(--radius-sm); box-shadow:0 10px 25px rgba(0,0,0,0.2); font-size:14px; font-weight:600; animation:slideLeft .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);}
+@keyframes slideLeft{from{opacity:0; transform:translateX(30px);} to{opacity:1; transform:none;}}
+.toast.error{background:var(--danger);}
+.toast.warn{background:var(--amber-600);}
+
+.empty-state{text-align:center; padding:60px 20px; color:var(--ink-400); font-size: 15px;}
+.empty-state .es-emoji{font-size:42px; margin-bottom:12px; display: block;}
+
+.text-right{text-align:right;}
+.mt-1{margin-top:8px;} .mt-2{margin-top:20px;} .mb-1{margin-bottom:10px;}
+.flex-between{display:flex; justify-content:space-between; align-items:center;}
+</style>
+</head>
+<body>
+
+<div id="toast-root" class="toast-root"></div>
+
+<div id="view-splash" class="view-splash active">
+  <div class="splash-brand">
+    <div class="splash-logo"><img src="icons/icon-192.png" alt="KasirKu"></div>
+    <h1>KasirKu</h1>
+    <p class="splash-tag">Global Kasir, Mudah &amp; Terpercaya</p>
+    <div class="splash-loader"></div>
+  </div>
+</div>
+
+<div id="view-setup" class="view view-auth">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo-box"><img src="icons/icon-192.png" alt="KasirKu"></div>
+      <h2>Aktivasi Sistem</h2>
+      <p>Buat akun <strong>Pemilik</strong> untuk mengunci akses penuh ke sistem kasir Anda.</p>
+    </div>
+    <form id="form-setup" class="auth-form" autocomplete="off">
+      <label>Nama Toko
+        <input type="text" id="setup-store-name" placeholder="Contoh: Warung Bejo" required>
+      </label>
+      <label>Nama Pemilik
+        <input type="text" id="setup-owner-name" placeholder="Nama lengkap Anda" required>
+      </label>
+      <label>Username Login
+        <input type="text" id="setup-username" placeholder="owner" required autocomplete="off">
+      </label>
+      <label>Password
+        <input type="password" id="setup-password" placeholder="Minimal 6 karakter" minlength="6" required autocomplete="new-password">
+      </label>
+      <label>Ulangi Password
+        <input type="password" id="setup-password2" placeholder="Ulangi password" minlength="6" required autocomplete="new-password">
+      </label>
+      <p class="hint-security">🔒 Data dienkripsi aman di perangkat ini.</p>
+      <button type="submit" class="btn btn-primary btn-block">Aktifkan & Masuk</button>
+    </form>
+  </div>
+</div>
+
+<div id="view-login" class="view view-auth">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo-box"><img src="icons/icon-192.png" alt="KasirKu"></div>
+      <h2 id="login-store-name">KasirKu</h2>
+      <p>Selamat datang kembali. Silakan masuk.</p>
+    </div>
+
+    <div class="role-switch" id="role-switch">
+      <button type="button" class="role-btn active" data-role="kasir">Masuk Kasir</button>
+      <button type="button" class="role-btn" data-role="owner">Masuk Pemilik</button>
+    </div>
+
+    <form id="form-login" class="auth-form" autocomplete="off">
+      <div id="login-username-wrap">
+        <label>Username
+          <input type="text" id="login-username" placeholder="Masukkan username" required autocomplete="off">
+        </label>
+      </div>
+      <label id="login-password-label">Password / PIN
+        <input type="password" id="login-password" placeholder="Masukkan sandi rahasia" required autocomplete="current-password" inputmode="numeric">
+      </label>
+      <p class="form-error" id="login-error"></p>
+      <button type="submit" class="btn btn-primary btn-block">Masuk ke Sistem</button>
+    </form>
+  </div>
+</div>
+
+<div id="view-app" class="view view-app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div class="sb-logo"><img src="icons/icon-96.png" alt="KasirKu"></div>
+      <div>
+        <strong id="sb-store-name">KasirKu</strong>
+        <span id="sb-user-name">-</span>
+      </div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <button class="btn btn-ghost btn-logout" id="btn-logout">⎋ Keluar Akun</button>
+  </aside>
+
+  <div class="content-col">
+    <div class="top-stack">
+      <div class="mobile-topbar" id="mobile-topbar">
+        <button id="btn-open-menu" class="icon-btn">☰</button>
+        <div class="mt-brand">
+          <div class="mt-logo"><img src="icons/icon-96.png" alt="KasirKu"></div>
+          <strong id="mt-title">KasirKu</strong>
+        </div>
+        <button id="btn-mt-logout" class="icon-btn" style="font-size: 16px;">⎋</button>
+      </div>
+      <div class="app-statusbar" id="app-statusbar">
+        <div class="asb-group">
+          <div class="asb-item asb-store"><span class="asb-ic">🏪</span><span id="asb-store-name">-</span></div>
+          <div class="asb-item asb-clock"><span class="asb-ic">🕒</span><span id="asb-clock">--:--:--</span></div>
+        </div>
+        <div class="asb-item asb-user"><span class="asb-ic">👤</span><span id="asb-user-name">-</span></div>
+      </div>
+    </div>
+
+    <main class="main-content" id="main-content">
+      <!-- Konten di-render lewat JS -->
+    </main>
+  </div>
+</div>
+
+<div id="modal-root" class="modal-root"></div>
+
+<!-- Libraries -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<script>
+const DB_NAME = 'kasirku_pos_db_v1';
+const DB_VERSION = 1;
+const STORES = {
+  settings: 'settings', users: 'users', products: 'products', stockLogs: 'stockLogs', transactions: 'transactions'
+};
+let _dbPromise = null;
+
+function openDB() {
+  if (_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORES.settings)) db.createObjectStore(STORES.settings, { keyPath: 'key' });
+      if (!db.objectStoreNames.contains(STORES.users)) {
+        const s = db.createObjectStore(STORES.users, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('username', 'username', { unique: true });
+      }
+      if (!db.objectStoreNames.contains(STORES.products)) {
+        const s = db.createObjectStore(STORES.products, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('barcode', 'barcode', { unique: false });
+        s.createIndex('name', 'name', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORES.stockLogs)) {
+        const s = db.createObjectStore(STORES.stockLogs, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('productId', 'productId', { unique: false });
+        s.createIndex('date', 'date', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(STORES.transactions)) {
+        const s = db.createObjectStore(STORES.transactions, { keyPath: 'id', autoIncrement: true });
+        s.createIndex('date', 'date', { unique: false });
+        s.createIndex('cashierId', 'cashierId', { unique: false });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return _dbPromise;
+}
+
+function tx(storeName, mode = 'readonly') {
+  return openDB().then(db => db.transaction(storeName, mode).objectStore(storeName));
+}
+
+const DB = {
+  async add(store, value) {
+    const s = await tx(store, 'readwrite');
+    return new Promise((res, rej) => { const r = s.add(value); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async put(store, value) {
+    const s = await tx(store, 'readwrite');
+    return new Promise((res, rej) => { const r = s.put(value); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async get(store, key) {
+    const s = await tx(store);
+    return new Promise((res, rej) => { const r = s.get(key); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async delete(store, key) {
+    const s = await tx(store, 'readwrite');
+    return new Promise((res, rej) => { const r = s.delete(key); r.onsuccess = () => res(true); r.onerror = () => rej(r.error); });
+  },
+  async getAll(store) {
+    const s = await tx(store);
+    return new Promise((res, rej) => { const r = s.getAll(); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async getByIndex(store, indexName, value) {
+    const s = await tx(store);
+    return new Promise((res, rej) => { const r = s.index(indexName).getAll(value); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  },
+  async getSetting(key, fallback = null) {
+    const row = await DB.get(STORES.settings, key);
+    return row ? row.value : fallback;
+  },
+  async setSetting(key, value) {
+    return DB.put(STORES.settings, { key, value });
+  },
+  STORES
+};
+
+const Auth = (() => {
+  const ITER = 150000;
+  function randomSalt() {
+    const arr = new Uint8Array(16); crypto.getRandomValues(arr); return btoa(String.fromCharCode(...arr));
+  }
+  async function hashPassword(password, saltB64) {
+    const enc = new TextEncoder(); const saltBytes = Uint8Array.from(atob(saltB64), c => c.charCodeAt(0));
+    const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: saltBytes, iterations: ITER, hash: 'SHA-256' }, keyMaterial, 256);
+    return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  async function makeCredential(password) {
+    const salt = randomSalt(); const hash = await hashPassword(password, salt); return { salt, hash };
+  }
+  async function verify(password, salt, hash) {
+    const test = await hashPassword(password, salt); return test === hash;
+  }
+  let currentUser = null;
+  // DIUBAH: Menggunakan localStorage agar login tersimpan permanen walau tab ditutup
+  function setSession(user) { currentUser = user; localStorage.setItem('kb_session_v2', JSON.stringify({id: user.id, username: user.username, role: user.role, name: user.name})); }
+  function getSession() {
+    if (currentUser) return currentUser;
+    const raw = localStorage.getItem('kb_session_v2');
+    if (raw) { currentUser = JSON.parse(raw); return currentUser; }
+    return null;
+  }
+  function clearSession() { currentUser = null; localStorage.removeItem('kb_session_v2'); }
+  return { makeCredential, verify, setSession, getSession, clearSession };
+})();
+
+const QRIS = (() => {
+  function parseTLV(str) {
+    const out = []; let i = 0;
+    while (i < str.length) {
+      const tag = str.substr(i, 2); const len = parseInt(str.substr(i + 2, 2), 10);
+      const value = str.substr(i + 4, len); out.push({ tag, len, value }); i += 4 + len;
+    }
+    return out;
+  }
+  function buildTLV(fields) { return fields.map(f => f.tag + f.value.length.toString().padStart(2, '0') + f.value).join(''); }
+  function crc16(str) {
+    let crc = 0xFFFF;
+    for (let c = 0; c < str.length; c++) {
+      crc ^= str.charCodeAt(c) << 8;
+      for (let i = 0; i < 8; i++) {
+        if ((crc & 0x8000) !== 0) crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+        else crc = (crc << 1) & 0xFFFF;
+      }
+    }
+    return crc.toString(16).toUpperCase().padStart(4, '0');
+  }
+  function makeDynamic(staticQris, amount) {
+    let fields = parseTLV(staticQris.trim()).filter(f => f.tag !== '63');
+    fields = fields.map(f => f.tag === '01' ? { ...f, value: '12' } : f);
+    const amountField = { tag: '54', value: Number(amount).toFixed(2) };
+    const idx58 = fields.findIndex(f => f.tag === '58');
+    const already54 = fields.findIndex(f => f.tag === '54');
+    if (already54 !== -1) fields.splice(already54, 1);
+    fields.splice(idx58 !== -1 ? idx58 : fields.length, 0, amountField);
+    let payload = buildTLV(fields) + '6304';
+    return payload + crc16(payload);
+  }
+  return { makeDynamic, parseTLV, crc16 };
+})();
+
+const DEFAULT_QRIS_STATIC = "00020101021126610014COM.GO-JEK.WWW01189360091438800139540210G8800139540303UMI51440014ID.CO.QRIS.WWW0215ID10264928258920303UMI5204899953033605802ID5925WARUNG WEB3, Digital & Kr6009PRINGSEWU61053537662070703A0163046BA4";
+const S = { STORES: DB.STORES };
+let state = { session: null, settings: null, view: 'dashboard', cart: [], scanner: null, products: [] };
+
+function rupiah(n){ return 'Rp' + Math.round(Number(n)||0).toLocaleString('id-ID'); }
+function fmtDate(d){ const dt = new Date(d); return dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); }
+function todayKey(d = new Date()){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function toast(msg, type=''){
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div'); el.className = 'toast' + (type ? ' '+type : ''); el.textContent = msg;
+  root.appendChild(el); setTimeout(()=> el.remove(), 3200);
+}
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function openModal(innerHTML, opts={}){
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-overlay" id="modal-overlay"><div class="modal-box ${opts.wide?'modal-wide':''}">${innerHTML}</div></div>`;
+  document.getElementById('modal-overlay').addEventListener('mousedown', (e)=>{ if(e.target.id === 'modal-overlay' && opts.closable !== false) closeModal(); });
+  if(opts.onMount) opts.onMount();
+}
+function closeModal(){
+  if(state.scanner){ try{ state.scanner.stop().then(()=>state.scanner.clear()).catch(()=>{}); }catch(e){} state.scanner = null; }
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', startClock);
+
+// --- PWA: Service worker registration (aman jika file dibuka langsung / tanpa server) ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {
+      // Diamkan jika gagal (misal dibuka via file:// atau tanpa koneksi) agar aplikasi tetap berjalan normal
+    });
+  });
+}
+
+// --- Status bar: nama toko, jam berjalan, kasir yang login ---
+function updateStatusBar(){
+  const storeEl = document.getElementById('asb-store-name');
+  const userEl = document.getElementById('asb-user-name');
+  if(storeEl) storeEl.textContent = (state.settings && state.settings.storeName) || 'KasirKu';
+  if(userEl){
+    if(state.session){
+      userEl.textContent = `${state.session.name} (${state.session.role === 'owner' ? 'Pemilik' : 'Kasir'})`;
+    } else {
+      userEl.textContent = '-';
+    }
+  }
+}
+let _clockInterval = null;
+function startClock(){
+  const el = document.getElementById('asb-clock');
+  if(!el || _clockInterval) return;
+  const tick = () => {
+    const now = new Date();
+    const tanggal = now.toLocaleDateString('id-ID', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+    const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+    el.textContent = `${tanggal} · ${jam}`;
+  };
+  tick();
+  _clockInterval = setInterval(tick, 1000);
+}
+
+async function init(){
+  try {
+    const allUsers = await DB.getAll(S.STORES.users);
+    const hasOwner = allUsers.some(u => u.role === 'owner');
+    state.settings = await loadSettings();
+
+    const session = Auth.getSession();
+    let nextViewId = 'view-setup';
+
+    if (hasOwner) {
+      if (session) {
+        state.session = session;
+        nextViewId = 'view-app';
+        document.getElementById('login-store-name').textContent = state.settings.storeName || 'KasirKu';
+        document.getElementById('sb-store-name').textContent = state.settings.storeName || 'KasirKu';
+        document.getElementById('sb-user-name').textContent = `${state.session.name} · ${state.session.role === 'owner' ? 'Pemilik' : 'Kasir'}`;
+        updateStatusBar();
+        buildSidebarNav();
+        navigate(state.session.role === 'owner' ? 'dashboard' : 'pos');
+      } else {
+        nextViewId = 'view-login';
+        document.getElementById('login-store-name').textContent = state.settings.storeName || 'KasirKu';
+      }
+    }
+
+    // Set view yang benar sebelum menghilangkan splash screen
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(nextViewId).classList.add('active');
+
+    // Menghilangkan splash screen dengan animasi mulus
+    setTimeout(() => {
+        const splash = document.getElementById('view-splash');
+        splash.classList.remove('active');
+    }, 1000);
+    
+    bindStaticEvents();
+  } catch (error) {
+    toast("Terjadi kesalahan sistem.", "error");
+    console.error(error);
+  }
+}
+
+async function loadSettings(){
+  const all = {}; const rows = await DB.getAll(S.STORES.settings);
+  rows.forEach(r => all[r.key] = r.value);
+  return { storeName: all.storeName || 'Warung Saya', qrisStatic: all.qrisStatic || DEFAULT_QRIS_STATIC, cashierLoginMode: all.cashierLoginMode || 'password' };
+}
+async function saveSettingsPatch(patch){
+  for(const k in patch) await DB.setSetting(k, patch[k]);
+  state.settings = await loadSettings();
+}
+
+function showView(id){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+document.addEventListener('submit', async (e) => {
+  if(e.target.id === 'form-setup'){
+    e.preventDefault();
+    const storeName = document.getElementById('setup-store-name').value.trim();
+    const ownerName = document.getElementById('setup-owner-name').value.trim();
+    const username = document.getElementById('setup-username').value.trim().toLowerCase();
+    const pw1 = document.getElementById('setup-password').value;
+    const pw2 = document.getElementById('setup-password2').value;
+    if(pw1 !== pw2){ toast('Password tidak sama','error'); return; }
+    if(pw1.length < 6){ toast('Password minimal 6 karakter','error'); return; }
+
+    const cred = await Auth.makeCredential(pw1);
+    const user = { username, name: ownerName, role:'owner', active:true, loginMode:'password', ...cred, createdAt:new Date().toISOString() };
+    await DB.add(S.STORES.users, user);
+    await saveSettingsPatch({ storeName, qrisStatic: DEFAULT_QRIS_STATIC, cashierLoginMode:'password' });
+
+    toast('Akun berhasil dibuat!');
+    const created = (await DB.getByIndex(S.STORES.users,'username',username))[0];
+    Auth.setSession(created);
+    state.session = Auth.getSession();
+    await enterApp();
+  }
+});
+
+function bindStaticEvents(){
+  document.getElementById('role-switch').addEventListener('click', (e)=>{
+    const btn = e.target.closest('.role-btn');
+    if(!btn) return;
+    document.querySelectorAll('.role-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    updateLoginFieldsForRole(btn.dataset.role);
+  });
+  document.getElementById('form-login').addEventListener('submit', onLoginSubmit);
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
+  document.getElementById('btn-mt-logout').addEventListener('click', doLogout);
+  document.getElementById('btn-open-menu').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.add('mobile-open');
+    const bd = document.createElement('div');
+    bd.className='sidebar-backdrop'; bd.id='sidebar-backdrop';
+    bd.onclick = ()=>{ document.getElementById('sidebar').classList.remove('mobile-open'); bd.remove(); };
+    document.body.appendChild(bd);
+  });
+}
+
+function updateLoginFieldsForRole(role){
+  const usernameWrap = document.getElementById('login-username-wrap');
+  const pwLabel = document.getElementById('login-password-label');
+  const pwInput = document.getElementById('login-password');
+  usernameWrap.style.display = '';
+  if(role === 'kasir' && state.settings.cashierLoginMode === 'pin'){
+    pwLabel.childNodes[0].textContent = 'PIN Kasir';
+    pwInput.setAttribute('inputmode','numeric');
+    pwInput.setAttribute('placeholder','Masukkan PIN');
+  } else {
+    pwLabel.childNodes[0].textContent = 'Password';
+    pwInput.setAttribute('placeholder','Masukkan sandi rahasia');
+  }
+}
+
+async function onLoginSubmit(e){
+  e.preventDefault();
+  const role = document.querySelector('.role-btn.active').dataset.role;
+  const username = document.getElementById('login-username').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
+
+  const matches = await DB.getByIndex(S.STORES.users, 'username', username);
+  const user = matches.find(u => u.role === role);
+  if(!user || user.active === false){ errorEl.textContent = 'Username tidak ditemukan.'; return; }
+  const ok = await Auth.verify(password, user.salt, user.hash);
+  if(!ok){ errorEl.textContent = role === 'owner' ? 'Password salah.' : 'Password/PIN salah.'; return; }
+  
+  Auth.setSession(user);
+  state.session = Auth.getSession();
+  document.getElementById('form-login').reset();
+  await enterApp();
+}
+
+function doLogout(){
+  Auth.clearSession(); state.session = null; state.cart = [];
+  document.getElementById('sidebar-backdrop')?.remove();
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('login-store-name').textContent = state.settings.storeName;
+  updateStatusBar();
+  showView('view-login');
+}
+
+async function enterApp(){
+  document.getElementById('sb-store-name').textContent = state.settings.storeName;
+  document.getElementById('sb-user-name').textContent = `${state.session.name} · ${state.session.role === 'owner' ? 'Pemilik' : 'Kasir'}`;
+  updateStatusBar();
+  buildSidebarNav();
+  showView('view-app');
+  navigate(state.session.role === 'owner' ? 'dashboard' : 'pos');
+}
+
+function navItemsForRole(role){
+  if(role === 'owner') return [
+    {id:'dashboard', label:'Dashboard', ic:'📊'}, {id:'pos', label:'Kasir (POS)', ic:'🛒'},
+    {id:'produk', label:'Produk', ic:'📦'}, {id:'stok', label:'Stok', ic:'📈'},
+    {id:'omset', label:'Omset', ic:'💰'}, {id:'riwayat', label:'Riwayat', ic:'🧾'},
+    {id:'akunkasir', label:'Akun Kasir', ic:'👥'}, {id:'pengaturan', label:'Pengaturan', ic:'⚙️'}
+  ];
+  return [ {id:'pos', label:'Kasir (POS)', ic:'🛒'}, {id:'riwayat', label:'Riwayat Saya', ic:'🧾'} ];
+}
+
+function buildSidebarNav(){
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = navItemsForRole(state.session.role).map(it => `<button class="nav-item" data-view="${it.id}"><span class="ic">${it.ic}</span>${esc(it.label)}</button>`).join('');
+  nav.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      navigate(btn.dataset.view);
+      document.getElementById('sidebar-backdrop')?.remove();
+      document.getElementById('sidebar').classList.remove('mobile-open');
+    });
+  });
+}
+
+const RENDERERS = { dashboard: renderDashboard, pos: renderPOS, produk: renderProduk, stok: renderStok, omset: renderOmset, riwayat: renderRiwayat, akunkasir: renderAkunKasir, pengaturan: renderPengaturan };
+async function navigate(viewId){
+  const allowed = navItemsForRole(state.session.role).map(i=>i.id);
+  if(!allowed.includes(viewId)) viewId = allowed[0];
+  state.view = viewId;
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === viewId));
+  document.getElementById('mt-title').textContent = navItemsForRole(state.session.role).find(i=>i.id===viewId)?.label || 'KasirKu';
+  document.getElementById('main-content').innerHTML = '<div class="empty-state">Memuat data...</div>';
+  await RENDERERS[viewId]();
+}
+
+async function renderDashboard(){
+  const trx = await DB.getAll(S.STORES.transactions);
+  const today = todayKey(); const todayTrx = trx.filter(t => todayKey(new Date(t.date)) === today);
+  const products = await DB.getAll(S.STORES.products);
+  
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-head"><div><h2>Dashboard</h2><p>Ringkasan hari ini · ${new Date().toLocaleDateString('id-ID',{weekday:'long', day:'numeric', month:'long', year:'numeric'})}</p></div></div>
+    <div class="grid grid-stats">
+      <div class="stat-ticket"><div class="st-label">Omset Hari Ini</div><div class="st-value">${rupiah(todayTrx.reduce((a,t)=>a+t.total,0))}</div><div class="st-sub">${todayTrx.length} transaksi</div></div>
+      <div class="stat-ticket accent-gold"><div class="st-label">Laba Bersih</div><div class="st-value">${rupiah(todayTrx.reduce((a,t)=>a+t.profit,0))}</div><div class="st-sub">Estimasi untung hari ini</div></div>
+      <div class="stat-ticket accent-amber"><div class="st-label">Total Produk</div><div class="st-value">${products.length}</div><div class="st-sub">${products.filter(p=>p.stock<=(p.minStock??5)).length} stok menipis</div></div>
+    </div>
+    <div class="card mt-2">
+      <div class="card-head"><h3>Transaksi Terbaru</h3><button class="btn btn-outline btn-sm" onclick="navigate('riwayat')">Lihat Semua</button></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Waktu</th><th>Kasir</th><th>Item</th><th>Bayar</th><th class="text-right">Total</th></tr></thead>
+        <tbody>${trx.slice(-6).reverse().map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${esc(t.cashierName)}</td><td>${t.items.length} item</td><td><span class="badge ${t.paymentMethod==='qris'?'badge-ok':'badge-warn'}">${t.paymentMethod==='qris'?'QRIS':'Tunai'}</span></td><td class="text-right">${rupiah(t.total)}</td></tr>`).join('') || `<tr><td colspan="5" class="text-center">Belum ada transaksi</td></tr>`}</tbody>
+      </table></div>
+    </div>`;
+}
+
+async function renderProduk(){
+  const products = (await DB.getAll(S.STORES.products)).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-head"><div><h2>Data Produk</h2><p>Kelola daftar barang, harga, dan kode barcode</p></div><button class="btn btn-primary" onclick="openProductForm()">＋ Tambah Baru</button></div>
+    <div class="card"><input type="text" id="produk-search" placeholder="Cari nama atau barcode produk..." style="width:100%;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px;background:#F9FAFB;font-size:15px;">
+    <div class="table-wrap"><table id="produk-table"><thead><tr><th>Produk</th><th>Barcode</th><th>Harga Beli</th><th>Harga Jual</th><th>Stok</th><th>Aksi</th></tr></thead><tbody>${productRows(products)}</tbody></table></div></div>`;
+  document.getElementById('produk-search').addEventListener('input', (e)=>{
+    const q = e.target.value.toLowerCase();
+    document.querySelector('#produk-table tbody').innerHTML = productRows(products.filter(p => p.name.toLowerCase().includes(q) || (p.barcode||'').includes(q)));
+  });
+}
+function productRows(products){
+  return products.map(p => `<tr><td><strong>${esc(p.name)}</strong><br><span style="color:var(--ink-400);font-size:12.5px">${esc(p.category||'-')}</span></td><td>${esc(p.barcode || '-')}</td><td>${rupiah(p.buyPrice)}</td><td>${rupiah(p.sellPrice)}</td><td>${p.stock} ${p.stock<=(p.minStock??5)?'<span class="badge badge-danger">!</span>':''}</td><td><button class="btn btn-outline btn-sm" onclick="openProductForm(${p.id})">Edit</button> <button class="btn btn-danger btn-sm" onclick="deleteProduct(${p.id})">Hapus</button></td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center; padding: 30px; color:var(--ink-400);">Belum ada data produk.</td></tr>`;
+}
+
+function openProductForm(id){
+  (async ()=>{
+    const p = id ? await DB.get(S.STORES.products, id) : null;
+    openModal(`<div class="modal-head"><h3>${p?'Edit':'Tambah'} Produk</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><form id="form-product"><div class="modal-body"><div class="form-grid"><div class="field"><label>Nama Produk</label><input required id="pf-name" value="${p?esc(p.name):''}"></div><div class="field"><label>Kategori</label><input id="pf-category" value="${p?esc(p.category||''):''}"></div><div class="field"><label>Barcode</label><div class="field-row"><input id="pf-barcode" value="${p?esc(p.barcode||''):''}"><button type="button" class="btn btn-outline btn-sm" onclick="scanIntoField('pf-barcode')">📷</button></div></div><div class="field"><label>Satuan</label><input id="pf-unit" value="${p?esc(p.unit||'pcs'):'pcs'}"></div><div class="field"><label>Harga Beli Pokok</label><input required type="number" min="0" id="pf-buy" value="${p?p.buyPrice:''}"></div><div class="field"><label>Harga Jual</label><input required type="number" min="0" id="pf-sell" value="${p?p.sellPrice:''}"></div><div class="field"><label>Stok Awal</label><input required type="number" min="0" id="pf-stock" value="${p?p.stock:0}" ${p?'disabled title="Ubah stok melalui menu Stok"':''}></div></div></div><div class="modal-foot"><button type="button" class="btn btn-ghost" onclick="closeModal()">Batal</button><button type="submit" class="btn btn-primary btn-block">Simpan Data</button></div></form>`);
+    document.getElementById('form-product').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const data = { name: document.getElementById('pf-name').value.trim(), category: document.getElementById('pf-category').value.trim(), barcode: document.getElementById('pf-barcode').value.trim(), unit: document.getElementById('pf-unit').value.trim(), buyPrice: Number(document.getElementById('pf-buy').value), sellPrice: Number(document.getElementById('pf-sell').value) };
+      if(p){ await DB.put(S.STORES.products, {...p, ...data}); toast('Produk berhasil diperbarui'); }
+      else { data.stock = Number(document.getElementById('pf-stock').value) || 0; data.createdAt = new Date().toISOString(); await DB.add(S.STORES.products, data); toast('Produk ditambahkan'); }
+      closeModal(); renderProduk();
+    });
+  })();
+}
+async function deleteProduct(id){ if(confirm('Yakin ingin menghapus produk ini secara permanen?')){ await DB.delete(S.STORES.products, id); toast('Produk dihapus'); renderProduk(); } }
+
+function scanIntoField(fieldId){
+  openModal(`<div class="modal-head"><h3>Scan Barcode</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><div class="modal-body"><div id="barcode-reader"></div></div>`, {onMount: ()=> startScanner((text)=>{ const f = document.getElementById(fieldId); if(f) f.value = text; closeModal(); toast('Barcode Terbaca'); })});
+}
+function startScanner(onResult){
+  if(typeof Html5Qrcode === 'undefined') return toast('Butuh koneksi internet untuk mengunduh scanner', 'error');
+  const scanner = new Html5Qrcode('barcode-reader'); state.scanner = scanner;
+  scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 250, height: 150 } }, (decodedText) => { onResult(decodedText); }, () => {}).catch(()=> toast('Tidak dapat mengakses kamera perangkat', 'error'));
+}
+
+async function renderStok(){
+  const products = (await DB.getAll(S.STORES.products)).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-head"><div><h2>Stok Produk</h2><p>Sesuaikan jumlah fisik barang dengan data</p></div></div>
+    <div class="card"><div class="table-wrap"><table><thead><tr><th>Produk</th><th>Stok Saat Ini</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
+    ${products.map(p=>`<tr><td><strong>${esc(p.name)}</strong></td><td>${p.stock}</td><td>${p.stock<5?'<span class="badge badge-danger">Menipis</span>':'<span class="badge badge-ok">Aman</span>'}</td><td><button class="btn btn-outline btn-sm" onclick="openStockAdjust(${p.id})">± Sesuaikan Fisik</button></td></tr>`).join('')}
+    </tbody></table></div></div>`;
+}
+function openStockAdjust(id){
+  (async ()=>{
+    const p = await DB.get(S.STORES.products, id);
+    openModal(`<div class="modal-head"><h3>Sesuaikan Stok</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><form id="form-stock"><div class="modal-body"><p class="mb-1" style="font-size:15px; color:var(--ink-900);">Produk: <strong>${esc(p.name)}</strong><br>Stok di sistem saat ini: <strong>${p.stock}</strong></p><hr style="border:none;border-top:1px dashed var(--line);margin:16px 0;"><div class="field mb-1"><label>Jenis Penyesuaian</label><select id="sf-type"><option value="in">Tambah (Barang Masuk / Retur)</option><option value="out">Kurangi (Barang Keluar / Rusak / Hilang)</option></select></div><div class="field mb-1"><label>Jumlah Fisik</label><input type="number" min="1" required id="sf-qty" value="1"></div><div class="field"><label>Catatan Opsional</label><input id="sf-note" placeholder="Misal: Stok dari supplier"></div></div><div class="modal-foot"><button type="submit" class="btn btn-primary btn-block">Simpan Perubahan Stok</button></div></form>`);
+    document.getElementById('form-stock').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const type = document.getElementById('sf-type').value; const qty = Number(document.getElementById('sf-qty').value);
+      const newStock = Math.max(0, p.stock + (type === 'in' ? qty : -qty));
+      await DB.put(S.STORES.products, {...p, stock:newStock}); toast('Stok berhasil disesuaikan'); closeModal(); renderStok();
+    });
+  })();
+}
+
+async function renderOmset(){
+  document.getElementById('main-content').innerHTML = `<div class="empty-state"><span class="es-emoji">📈</span><h3>Laporan Omset Detail</h3><p>Fitur grafik dan ekspor PDF akan segera hadir pada update berikutnya.</p></div>`;
+}
+
+async function renderRiwayat(){
+  let trx = (await DB.getAll(S.STORES.transactions)).sort((a,b)=> new Date(b.date)-new Date(a.date));
+  if(state.session.role !== 'owner') trx = trx.filter(t => t.cashierId === state.session.id);
+  document.getElementById('main-content').innerHTML = `<div class="page-head"><div><h2>Riwayat Transaksi</h2></div></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Item</th><th>Total Pembayaran</th><th>Aksi</th></tr></thead><tbody>${trx.map(t=>`<tr><td>${fmtDate(t.date)}</td><td>${t.items.length} macam item</td><td><strong>${rupiah(t.total)}</strong></td><td><button class="btn btn-outline btn-sm" onclick="viewReceipt(${t.id})">Lihat Struk</button></td></tr>`).join('') || `<tr><td colspan="4" class="text-center">Belum ada transaksi terekam</td></tr>`}</tbody></table></div></div>`;
+}
+async function viewReceipt(id){
+  const t = await DB.get(S.STORES.transactions, id);
+  openModal(`<div class="modal-head"><h3>Detail Struk</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="receipt"><h3 class="r-center">${esc(state.settings.storeName)}</h3><div class="r-center">${fmtDate(t.date)}<br>Kasir: ${esc(t.cashierName)}</div><hr>${t.items.map(it=>`<div class="r-row"><span>${esc(it.name)} x${it.qty}</span><span>${rupiah(it.subtotal)}</span></div>`).join('')}<hr><div class="r-row"><strong>TOTAL</strong><strong>${rupiah(t.total)}</strong></div><div class="r-row"><span>Metode</span><span style="text-transform:uppercase">${t.paymentMethod}</span></div><div class="r-row"><span>Bayar</span><span>${rupiah(t.paid)}</span></div><div class="r-row"><span>Kembali</span><span>${rupiah(t.change)}</span></div><div class="r-center mt-2">Terima kasih 🙏</div></div></div>`);
+}
+
+async function renderAkunKasir(){
+  const users = (await DB.getAll(S.STORES.users)).filter(u=>u.role==='kasir');
+  document.getElementById('main-content').innerHTML = `<div class="page-head"><div><h2>Akun Pekerja / Kasir</h2></div><button class="btn btn-primary" onclick="openCashierForm()">+ Tambah Kasir</button></div><div class="card"><div class="table-wrap"><table><thead><tr><th>Nama Lengkap</th><th>Username Login</th><th>Aksi</th></tr></thead><tbody>${users.map(u=>`<tr><td>${esc(u.name)}</td><td><strong>${esc(u.username)}</strong></td><td><button class="btn btn-danger btn-sm" onclick="deleteCashier(${u.id})">Hapus Akses</button></td></tr>`).join('') || `<tr><td colspan="3" class="text-center">Belum ada akun kasir tambahan.</td></tr>`}</tbody></table></div></div>`;
+}
+function openCashierForm(){
+  openModal(`<div class="modal-head"><h3>Tambah Akses Kasir</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><form id="form-cashier"><div class="modal-body"><div class="field mb-1"><label>Nama Kasir</label><input required id="cf-name" placeholder="Misal: Budi"></div><div class="field mb-1"><label>Username</label><input required id="cf-username" placeholder="Username untuk login"></div><div class="field"><label>Password Akun</label><input type="password" required id="cf-password" minlength="4" placeholder="Minimal 4 karakter"></div></div><div class="modal-foot"><button type="submit" class="btn btn-primary btn-block">Simpan & Aktifkan</button></div></form>`);
+  document.getElementById('form-cashier').addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    const name = document.getElementById('cf-name').value.trim(); const username = document.getElementById('cf-username').value.trim().toLowerCase();
+    const exist = await DB.getByIndex(S.STORES.users, 'username', username);
+    if(exist.length > 0){ toast('Username ini sudah dipakai','error'); return; }
+    const cred = await Auth.makeCredential(document.getElementById('cf-password').value);
+    await DB.add(S.STORES.users, {username, name, role:'kasir', active:true, loginMode:state.settings.cashierLoginMode, ...cred, createdAt:new Date().toISOString()});
+    toast('Akun Kasir berhasil ditambahkan'); closeModal(); renderAkunKasir();
+  });
+}
+async function deleteCashier(id){ if(confirm('Yakin ingin mencabut akses akun kasir ini?')){ await DB.delete(S.STORES.users, id); renderAkunKasir(); } }
+
+async function renderPengaturan(){
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-head"><div><h2>Pengaturan Sistem</h2></div></div>
+    <div class="card"><div class="card-head"><h3>Profil Toko</h3></div><form id="form-store"><div class="form-grid mb-1"><div class="field"><label>Nama Toko yang tampil di Struk</label><input id="st-name" value="${esc(state.settings.storeName)}" required></div></div><button class="btn btn-secondary">Simpan Profil</button></form></div>
+    <div class="card mt-2"><div class="card-head"><h3>Pengaturan QRIS Dinamis</h3><p style="font-size:13px; color:var(--ink-400);">Salin teks raw QRIS statis warung Anda ke sini untuk mengaktifkan fitur pembayaran QRIS dinamis.</p></div><form id="form-qris"><div class="field mb-1"><textarea id="st-qris" rows="5" style="font-family:monospace;font-size:13px" required>${esc(state.settings.qrisStatic)}</textarea></div><button class="btn btn-secondary">Update QRIS</button></form></div>
+    <div class="card mt-2"><div class="card-head"><h3>Keamanan Data</h3></div><p style="font-size:13.5px; color:var(--ink-400); margin-bottom: 12px;">Unduh seluruh data (produk, transaksi, dll) ke dalam file JSON untuk dicadangkan (backup) di perangkat lain.</p><button class="btn btn-outline" onclick="exportBackup()">Unduh Backup Data JSON</button></div>
+  `;
+  document.getElementById('form-store').addEventListener('submit', async(e)=>{ e.preventDefault(); await saveSettingsPatch({storeName:document.getElementById('st-name').value}); document.getElementById('sb-store-name').textContent=state.settings.storeName; updateStatusBar(); toast('Profil Toko berhasil disimpan'); });
+  document.getElementById('form-qris').addEventListener('submit', async(e)=>{ e.preventDefault(); await saveSettingsPatch({qrisStatic:document.getElementById('st-qris').value}); toast('Sistem QRIS diperbarui'); });
+}
+async function exportBackup(){
+  const dump = {}; for(const key of Object.values(S.STORES)){ dump[key] = await DB.getAll(key); }
+  const blob = new Blob([JSON.stringify(dump,null,2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `backup-kasirku-${todayKey()}.json`; a.click(); toast('Mengunduh backup...');
+}
+
+async function renderPOS(){
+  state.products = (await DB.getAll(S.STORES.products)).sort((a,b)=>a.name.localeCompare(b.name));
+  state.cart = [];
+  document.getElementById('main-content').innerHTML = `
+    <div class="pos-layout">
+      <div>
+        <div class="pos-search">
+          <input type="text" id="pos-search" placeholder="Ketik nama / barcode produk..." style="border:1.5px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; outline:none; font-size:15px; background:var(--white);">
+          <button class="btn btn-secondary" onclick="scanForPOS()">📷 Scan Barcode</button>
+        </div>
+        <div class="product-grid" id="pos-grid"></div>
+      </div>
+      <div class="cart-panel">
+        <div class="cart-head"><h3>Keranjang Belanja</h3></div>
+        <div class="cart-items" id="cart-items"></div>
+        <div class="cart-summary"><div class="summary-line total"><span>Total Bayar</span><span id="cart-total">Rp0</span></div></div>
+        <div class="cart-actions"><button class="btn btn-primary btn-block" style="padding: 16px; font-size: 16px;" onclick="openCheckout()">Proses Pembayaran</button></div>
+      </div>
+    </div>`;
+  renderProductGrid(state.products); renderCart();
+  document.getElementById('pos-search').addEventListener('input', (e)=>{ const q = e.target.value.toLowerCase(); renderProductGrid(state.products.filter(p=>p.name.toLowerCase().includes(q) || (p.barcode||'').includes(q))); });
+}
+function renderProductGrid(products){ document.getElementById('pos-grid').innerHTML = products.map(p=>`<button class="product-tile" onclick="addToCart(${p.id})"><div class="pt-name">${esc(p.name)}</div><div class="pt-price">${rupiah(p.sellPrice)}</div><div class="pt-stock">Sisa Stok: ${p.stock}</div></button>`).join('') || `<div class="empty-state">Produk tidak ditemukan</div>`; }
+function addToCart(id){
+  const p = state.products.find(x=>x.id===id); if(!p || p.stock<=0){ toast('Peringatan: Stok barang sudah habis','error'); return; }
+  const line = state.cart.find(c=>c.productId===id);
+  if(line){ if(line.qty >= p.stock){ toast('Maksimal stok tercapai','warn'); return; } line.qty++; } else { state.cart.push({productId:p.id, name:p.name, price:p.sellPrice, buyPrice:p.buyPrice, qty:1, stock:p.stock}); }
+  renderCart();
+}
+function renderCart(){
+  const w = document.getElementById('cart-items'); if(!w) return;
+  w.innerHTML = state.cart.map(c=>`<div class="cart-row"><div class="cr-info"><div class="cr-name">${esc(c.name)}</div><div class="cr-price">${rupiah(c.price)} / item</div></div><div class="qty-ctrl"><button onclick="changeQty(${c.productId},-1)">-</button><span>${c.qty}</span><button onclick="changeQty(${c.productId},1)">+</button></div></div>`).join('') || '<div class="cart-empty"><span style="font-size:32px;display:block;margin-bottom:8px;">🛒</span>Keranjang masih kosong.<br>Pilih produk di sebelah kiri.</div>';
+  document.getElementById('cart-total').textContent = rupiah(state.cart.reduce((a,c)=>a+c.qty*c.price,0));
+}
+function changeQty(id, d){ const c = state.cart.find(x=>x.productId===id); if(c){ c.qty+=d; if(c.qty<=0) state.cart=state.cart.filter(x=>x.productId!==id); renderCart(); } }
+function scanForPOS(){ scanIntoField(''); } // Di aplikasi aslinya akan lari ke pencarian
+
+function openCheckout(){
+  if(state.cart.length===0) return toast('Keranjang kosong, tidak bisa membayar','error');
+  const total = state.cart.reduce((a,c)=>a+c.qty*c.price,0);
+  openModal(`<div class="modal-head"><h3>Pembayaran Transaksi</h3><button class="icon-btn" style="color:var(--ink-400)" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="summary-line total mb-1"><span>Total Tagihan</span><span>${rupiah(total)}</span></div><div class="role-switch" id="pay-switch"><button class="role-btn active" data-pay="cash">Uang Tunai</button><button class="role-btn" data-pay="qris">Scan QRIS</button></div><div id="pay-content"></div></div>`, {wide:true});
+  
+  const renderCash = ()=>{
+    document.getElementById('pay-content').innerHTML = `<div class="field mb-1"><label>Uang Diterima dari Pelanggan</label><input type="number" id="pay-received" placeholder="Masukkan jumlah uang" style="font-size:18px; font-weight:bold;"></div><div class="summary-line" style="margin-top:16px;"><span>Kembalian</span><span id="pay-change" style="font-size:20px; font-weight:bold; color:var(--green-700);">Rp0</span></div><button class="btn btn-primary btn-block mt-2" id="btn-confirm-cash" style="padding:16px; font-size:16px;">Selesaikan Pesanan</button>`;
+    document.getElementById('pay-received').addEventListener('input', e=> document.getElementById('pay-change').textContent = rupiah(Math.max(0, (Number(e.target.value)||0)-total)));
+    document.getElementById('btn-confirm-cash').addEventListener('click', ()=>{ const r = Number(document.getElementById('pay-received').value); if(r<total) return toast('Uang yang dimasukkan kurang','error'); finalizeTransaction('cash', r, r-total); });
+  };
+  const renderQris = ()=>{
+    document.querySelector('.modal-box')?.classList.add('modal-qris');
+    try{
+      const str = QRIS.makeDynamic(state.settings.qrisStatic, total);
+      document.getElementById('pay-content').innerHTML = `<div class="qris-box"><div class="qris-badge">📱 Scan QRIS Dinamis</div><div class="qris-canvas-wrap"><canvas id="qris-canvas"></canvas></div><div class="qris-amount">${rupiah(total)}</div><p style="font-size:13px; color:var(--ink-400); margin-bottom:16px;">Minta pelanggan scan QR di atas menggunakan M-Banking/E-Wallet</p><button class="btn btn-primary btn-block mt-2" onclick="finalizeTransaction('qris',${total},0)" style="padding:16px; font-size:16px;">✅ Konfirmasi Pelanggan Sudah Bayar</button></div>`;
+      if(typeof QRCode !== 'undefined') QRCode.toCanvas(document.getElementById('qris-canvas'), str, {width:280, margin:1});
+    } catch(e){ document.getElementById('pay-content').innerHTML = `<p class="form-error">Kode QRIS Statis di Pengaturan tidak valid. Silakan cek menu Pengaturan.</p>`; }
+  };
+  
+  renderCash();
+  document.getElementById('pay-switch').addEventListener('click', e=>{ const b=e.target.closest('.role-btn'); if(b){ document.querySelectorAll('#pay-switch .role-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); document.querySelector('.modal-box')?.classList.remove('modal-qris'); b.dataset.pay==='cash'?renderCash():renderQris(); } });
+}
+async function finalizeTransaction(method, paid, change){
+  const total = state.cart.reduce((a,c)=>a+c.qty*c.price,0); const profit = state.cart.reduce((a,c)=>a+c.qty*(c.price-c.buyPrice),0);
+  const trxId = await DB.add(S.STORES.transactions, { date: new Date().toISOString(), cashierId: state.session.id, cashierName: state.session.name, items: state.cart.map(c=>({name:c.name, price:c.price, qty:c.qty, subtotal:c.qty*c.price})), total, profit, paymentMethod: method, paid, change });
+  for(const c of state.cart){ const p = await DB.get(S.STORES.products, c.productId); if(p) await DB.put(S.STORES.products, {...p, stock: p.stock-c.qty}); }
+  toast('Transaksi Berhasil Tersimpan!'); closeModal(); viewReceipt(trxId); renderPOS();
+}
+
+</script>
+</body>
+</html>
